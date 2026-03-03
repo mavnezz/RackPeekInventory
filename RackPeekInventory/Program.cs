@@ -48,12 +48,9 @@ else
 
     if (isDryRun)
     {
-        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        });
+        var payload = RackPeekClient.BuildApiPayload(data);
+        var dryRunOptions = new JsonSerializerOptions(RackPeekClient.ApiJsonOptions) { WriteIndented = true };
+        var json = JsonSerializer.Serialize(payload, dryRunOptions);
         Console.WriteLine(json);
         return;
     }
@@ -70,14 +67,15 @@ else
 
     if (result != null)
     {
-        logger.LogInformation("{Action} {Kind} '{Name}'",
-            result.Hardware.Action, result.Hardware.Kind, result.Hardware.Name);
+        foreach (var name in result.Added)
+            logger.LogInformation("Added '{Name}'", name);
+        foreach (var name in result.Updated)
+            logger.LogInformation("Updated '{Name}'", name);
+        foreach (var name in result.Replaced)
+            logger.LogInformation("Replaced '{Name}'", name);
 
-        if (result.System != null)
-        {
-            logger.LogInformation("{Action} {Kind} '{Name}'",
-                result.System.Action, result.System.Kind, result.System.Name);
-        }
+        if (result.Added.Count == 0 && result.Updated.Count == 0 && result.Replaced.Count == 0)
+            logger.LogInformation("No changes");
     }
     else
     {
